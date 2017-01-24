@@ -77,6 +77,7 @@ void EA::Build_Pop()
     {
         Agent A;
         indv.push_back(A);
+        indv.at(a).neg = 0;
         indv.at(a).x.resize(pP->num_x_val);
         for (int i=0; i<pP->num_x_val; i++)
         {
@@ -210,13 +211,34 @@ void EA::Volumetric_fitness(int a)
     indv.at(a).fitness = 0;
     for (int i=0; i<pP->num_F; i++)
     {
+        indv.at(a).neg = 0;         //resets negative identifier
         if (i == 0)
         {
-            indv.at(a).fitness = (pP->set_point.at(i) - indv.at(a).F.at(i));
+            if (indv.at(a).F.at(i) > pP->set_point.at(i))
+            {
+                indv.at(a).neg = 1;
+                indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+            }
+            else
+            {
+                indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+            }
         }
         else
         {
-            indv.at(a).fitness = indv.at(a).fitness*(pP->set_point.at(i) - indv.at(a).F.at(i));
+            if (indv.at(a).F.at(i) > pP->set_point.at(i))
+            {
+                indv.at(a).neg = 1;
+                indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+            }
+            else
+            {
+                 indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+            }
+        }
+        if (indv.at(a).neg == 1)
+        {
+            indv.at(a).fitness = indv.at(a).fitness*-1;
         }
     }
 }
@@ -370,7 +392,12 @@ void EA::Run_Multi_Objective()
             Sort_indivduals_fitness();
             cout << "Best Individual" << endl;
             cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
-            cout << "Xm value" << "\t" << indv.at(0).GXm << endl;
+            cout << "Xm values" << "\t";
+            for (int i=0; i<pP->m; i++)
+            {
+                cout << indv.at(0).Xm.at(i) << "\t";
+            }
+            cout << endl;
             cout << "Function values" << "\t";
             for (int i=0; i<pP->num_F; i++)
             {
@@ -388,7 +415,12 @@ void EA::Run_Multi_Objective()
             Sort_indivduals_fitness();
             cout << "Best Individual" << endl;
             cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
-            cout << "Xm value" << "\t" << indv.at(0).GXm << endl;
+            cout << "Xm values" << "\t";
+            for (int i=0; i<pP->m; i++)
+            {
+                cout << indv.at(0).Xm.at(i) << "\t";
+            }
+            cout << endl;
             cout << "Function values" << "\t";
             for (int i=0; i<pP->num_F; i++)
             {

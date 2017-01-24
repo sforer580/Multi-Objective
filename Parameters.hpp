@@ -32,7 +32,7 @@ protected:
     
     
 public:
-    int num_agents = 50;
+    int num_agents = 100;
     int num_x_val = 2;
     int m = 3;
     double x_val_upper_limit = 1;

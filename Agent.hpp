@@ -37,7 +37,7 @@ public:
     vector<double> Xm;
     vector<double> F;
     double fitness;
-    
+    int neg;
 private:
 };
 
