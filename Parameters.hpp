@@ -43,13 +43,13 @@ public:
     int linear_combination = 0;                 //0=off, 1=on
     int volumetirc = 1;                         //0=off, 1=on
     vector<double> set_point;
-    double set_point_val_0 = 1;
-    double set_point_val_1 = 1;
-    double set_point_val_2 = 1;
+    double set_point_val_0 = 5;
+    double set_point_val_1 = 5;
+    double set_point_val_2 = 5;
     double W1 = 1;
     double W2 = 1;
     double W3 = 1;
-    int gen_max = 300;
+    int gen_max = 500;
     int to_kill = num_agents/2;
     double prob_mutate = 50;
     double mutate_range = 0.001;

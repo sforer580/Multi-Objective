@@ -133,6 +133,7 @@ void EA::Function_0(int a)
         {
             indv.at(a).F.at(0) = indv.at(a).F.at(0)*cos((indv.at(a).x.at(i)*3.14159)/2);
         }
+        assert(indv.at(a).F.at(0) >= 0);
     }
 }
 
@@ -153,6 +154,7 @@ void EA::Function_1(int a)
         {
             indv.at(a).F.at(1) = indv.at(a).F.at(1)*sin((indv.at(a).x.at(i)*3.14159)/2);
         }
+        assert(indv.at(a).F.at(1) >= 0);
     }
 }
 
@@ -164,6 +166,7 @@ void EA::Function_2(int a)
     indv.at(a).F.at(2) = 0;
     indv.at(a).F.at(2) = (1 + indv.at(a).GXm);
     indv.at(a).F.at(2) = indv.at(a).F.at(2)*sin((indv.at(a).x.at(0)*3.14159)/2);
+    assert(indv.at(a).F.at(2) >= 0);
 }
 
 
@@ -294,6 +297,14 @@ void EA::Mutation(Agent &M)
             double R1 = ((double)rand()/RAND_MAX) * pP->mutate_range;
             double R2 = ((double)rand()/RAND_MAX) * pP->mutate_range;
             M.x.at(i) = M.x.at(i) + (R1-R2);
+            if (M.x.at(i) < pP->x_val_lower_limit)
+            {
+                M.x.at(i) = pP->x_val_lower_limit;
+            }
+            if (M.x.at(i) > pP->x_val_upper_limit)
+            {
+                M.x.at(i) = pP->x_val_upper_limit;
+            }
         }
     }
     //muttaes Xm values
@@ -307,6 +318,14 @@ void EA::Mutation(Agent &M)
             double R1 = ((double)rand()/RAND_MAX) * pP->mutate_range;
             double R2 = ((double)rand()/RAND_MAX) * pP->mutate_range;
             M.Xm.at(i) = M.Xm.at(i) + (R1-R2);
+            if (M.Xm.at(i) < pP->Xm_val_lower_limit)
+            {
+                M.Xm.at(i) = pP->Xm_val_lower_limit;
+            }
+            if (M.Xm.at(i) > pP->Xm_val_upper_limit)
+            {
+                M.Xm.at(i) = pP->Xm_val_upper_limit;
+            }
         }
     }
 }
