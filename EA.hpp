@@ -27,13 +27,15 @@ class EA
 {
     friend class Parameters;
     friend class Agent;
+    friend class F_val;
     
 protected:
     
     
 public:
     Parameters* pP;
-    vector <Agent> indv;
+    vector<Agent> indv;
+    vector<F_value> point;
     
     //Data structure
     void Build_Pop();
@@ -58,6 +60,10 @@ public:
     //Statistical functions
     struct Greater_than_agent_fitness;
     void Write_final_pop_to_file();
+    void Store_f_values(int gen);
+    void Compare_Points(int p, int pp);
+    void Find_Pareto_Optimal_Points();
+    void Write_Pareto_Optimal_Points_To_File();
     
     //EA main
     void Run_Multi_Objective();
@@ -212,9 +218,10 @@ void EA::Get_Fitness()
 void EA::Volumetric_fitness(int a)
 {
     indv.at(a).fitness = 0;
+    indv.at(a).length = 0;
+    indv.at(a).neg = 0;         //resets negative identifier
     for (int i=0; i<pP->num_F; i++)
     {
-        indv.at(a).neg = 0;         //resets negative identifier
         if (i == 0)
         {
             if (indv.at(a).F.at(i) > pP->set_point.at(i))
@@ -232,17 +239,21 @@ void EA::Volumetric_fitness(int a)
             if (indv.at(a).F.at(i) > pP->set_point.at(i))
             {
                 indv.at(a).neg = 1;
-                indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+                indv.at(a).fitness = indv.at(a).fitness*abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
             }
             else
             {
-                 indv.at(a).fitness = abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
+                 indv.at(a).fitness = indv.at(a).fitness*abs((pP->set_point.at(i) - indv.at(a).F.at(i)));
             }
         }
-        if (indv.at(a).neg == 1)
-        {
-            indv.at(a).fitness = indv.at(a).fitness*-1;
-        }
+        indv.at(a).length += indv.at(a).F.at(i)*indv.at(a).F.at(i);
+    }
+    indv.at(a).length = sqrt(indv.at(a).length);
+    assert (indv.at(a).length >= 1);
+    //applies the negatvie volume if needed
+    if (indv.at(a).neg == 1)
+    {
+        indv.at(a).fitness = indv.at(a).fitness*-1;
     }
 }
 
@@ -397,6 +408,74 @@ void EA::Write_final_pop_to_file()
 
 
 //-------------------------------------------------------------------------
+//Writes Pareto optimal points to a txt file
+void EA::Write_Pareto_Optimal_Points_To_File()
+{
+    ofstream File3;
+    File3.open("Pareto_Optimal_Points.txt");
+    for (int p=0; p<point.size(); p++)
+    {
+        for (int i=0; i<pP->num_F; i++)
+        {
+            File3 << point.at(p).F.at(i) << "\t";
+        }
+        File3 << endl;
+    }
+    File3.close();
+}
+
+
+//-------------------------------------------------------------------------
+//Stores all the f values that ever existed
+void EA::Store_f_values(int gen)
+{
+    for (int i=0; i<pP->num_agents; i++)
+    {
+        F_value F;
+        point.push_back(F);
+        for (int v=0; v<pP->num_F; v++)
+        {
+            point.at(pP->num_agents*gen+i).F.push_back(indv.at(i).F.at(v));
+        }
+    }
+}
+
+
+//-------------------------------------------------------------------------
+//Compares two points
+void EA::Compare_Points(int p, int pp)
+{
+    if (point.at(p).F.at(0) > point.at(pp).F.at(0))
+    {
+        if (point.at(p).F.at(1) > point.at(pp).F.at(1))
+        {
+            if (point.at(p).F.at(2) > point.at(pp).F.at(2))
+            {
+                point.erase(point.begin() + pp);
+            }
+        }
+    }
+}
+
+
+//-------------------------------------------------------------------------
+//Finds the Pareto optimal points out of all the points ever
+void EA::Find_Pareto_Optimal_Points()
+{
+    for (int p=0; p<point.size(); p++)
+    {
+        for (int pp=0; pp<point.size(); pp++)
+        {
+            if (p != pp)
+            {
+                Compare_Points(p, pp);
+            }
+        }
+    }
+}
+
+
+//-------------------------------------------------------------------------
 //Runs entire multi-objective problem
 void EA::Run_Multi_Objective()
 {
@@ -423,6 +502,7 @@ void EA::Run_Multi_Objective()
                 cout << indv.at(0).F.at(i) << "\t";
             }
             cout << endl;
+            Store_f_values(gen);
             Natural_Selection();
             cout << endl;
             cout << "--------------------------------------------------------------------" << endl;
@@ -446,9 +526,12 @@ void EA::Run_Multi_Objective()
                 cout << indv.at(0).F.at(i) << "\t";
             }
             cout << endl;
+            Store_f_values(gen);
             Write_final_pop_to_file();
         }
     }
+    Find_Pareto_Optimal_Points();
+    Write_Pareto_Optimal_Points_To_File();
 }
 
 #endif /* EA_hpp */

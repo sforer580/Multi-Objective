@@ -19,6 +19,7 @@
 #include <ctime>
 
 #include "Agent.hpp"
+#include "F_value.hpp"
 #include "Parameters.hpp"
 #include "EA.hpp"
 

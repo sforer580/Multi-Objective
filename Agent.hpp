@@ -27,6 +27,7 @@ class Agent
 {
     friend class Parameters;
     friend class EA;
+    friend class F_val;
     
 protected:
     
@@ -38,6 +39,7 @@ public:
     vector<double> F;
     double fitness;
     int neg;
+    double length;
 private:
 };
 
