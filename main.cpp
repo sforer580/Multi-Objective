@@ -21,7 +21,10 @@
 #include "Agent.hpp"
 #include "F_value.hpp"
 #include "Parameters.hpp"
+#include "PaCcET.h"
+#include "Quartet.hpp"
 #include "EA.hpp"
+
 
 int main()
 {

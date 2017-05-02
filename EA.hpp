@@ -28,6 +28,7 @@ class EA
     friend class Parameters;
     friend class Agent;
     friend class F_val;
+    friend class PaCcET;
     
 protected:
     
@@ -36,6 +37,8 @@ public:
     Parameters* pP;
     vector<Agent> indv;
     vector<F_value> point;
+    vector<vector<double>> hyper_val;
+    int num_hyper_dom;
     
     //Data structure
     void Build_Pop();
@@ -46,9 +49,13 @@ public:
     void Function_1(int a);
     void Function_2(int a);
     void Sub_Function(int a);
-    void Get_Fitness();
+    void Get_Fitness(Quartet* pQ);
+    void PaCcET_Fitness(PaCcET* pT, int a);
+    void Run_Quartet(Quartet *pQ, int a);
     void Linear_Combination_Fitness(int a);
     void Volumetric_fitness(int a);
+    void Build_Hyper_Volume();
+    void Run_Hyper_Volume_Check(PaCcET* pT);
     
     //EA functions
     int Down_Select();
@@ -64,6 +71,7 @@ public:
     void Compare_Points(int p, int pp);
     void Find_Pareto_Optimal_Points();
     void Write_Pareto_Optimal_Points_To_File();
+    void Write_Counter_File(Quartet* pQ);
     
     //EA main
     void Run_Multi_Objective();
@@ -119,7 +127,7 @@ void EA::Create_set_point()
     pP->set_point.resize(pP->num_F);
     pP->set_point.at(0) = pP->set_point_val_0;
     pP->set_point.at(1) = pP->set_point_val_1;
-    pP->set_point.at(2) = pP->set_point_val_2;
+    //pP->set_point.at(2) = pP->set_point_val_2;
 }
 
 
@@ -189,16 +197,97 @@ void EA::Sub_Function(int a)
 
 
 //-------------------------------------------------------------------------
-//Gets fitness for each individual
-void EA::Get_Fitness()
+//Gets PaCcET fitness for each individual
+void EA::PaCcET_Fitness(PaCcET* pT, int a)
 {
+    vector<double> MO;
+    vector<double>* pMO = &MO;
+    MO = indv.at(a).F;
+    vector<double> OMO = MO;
+    pT->execute_N_transform(pMO);
+    indv.at(a).fitness = MO.at(0) + MO.at(1);
+}
+
+
+
+//-------------------------------------------------------------------------
+//Runs the Quartet process
+void EA::Run_Quartet(Quartet *pQ, int a)
+{
+    vector<double> coord;
+    coord = indv.at(a).F;
+    indv.at(a).fitness = pQ->Quartet_main(coord);
+}
+
+
+//-------------------------------------------------------------------------
+//Build the hyper volume space
+void EA::Build_Hyper_Volume()
+{
+    for (int i=0; i<pP->num_hyper; i++)
+    {
+        for (int j=0; j<2; j++)
+        {
+            double r = (rand()/RAND_MAX)*5;
+            hyper_val.at(i).push_back(r);
+        }
+    }
+}
+
+
+//-------------------------------------------------------------------------
+//Checks how much of the hyper volume is dominated
+void EA::Run_Hyper_Volume_Check(PaCcET* pT)
+{
+    num_hyper_dom = 0;
+    for (int i=0; i<10; i++)
+    {
+        //what is v1?
+        vector<double> v1;
+        for (int j=0; j<1000000; j++)
+        {
+            vector<double> v2 = hyper_val.at(j);
+            if (pT->does_v1_dominate_v2(v1, v2) == true)
+            {
+                //hyper volume point is dominated by pareto front
+                num_hyper_dom += 1;
+            }
+        }
+    }
+}
+
+
+//-------------------------------------------------------------------------
+//Gets fitness for each individual
+void EA::Get_Fitness(Quartet *pQ)
+{
+    PaCcET T;
+    PaCcET* pT = &T;
+    
     for (int a=0; a<pP->num_agents; a++)
     {
         indv.at(a).fitness = 0;
         Sub_Function(a);
         Function_0(a);
         Function_1(a);
-        Function_2(a);
+        //Function_2(a);
+        if (pP->use_PaCcet == 1)
+        {
+            pT->Pareto_Check(indv.at(a).F);
+        }
+    }
+    
+    
+    for (int a=0; a<pP->num_agents; a++)
+    {
+        if (pP->use_quartet ==1)
+        {
+            Run_Quartet(pQ, a);
+        }
+        if (pP->use_PaCcet == 1)
+        {
+            PaCcET_Fitness(pT, a);
+        }
         //linear combination
         if (pP->linear_combination == 1)
         {
@@ -208,7 +297,15 @@ void EA::Get_Fitness()
         {
             Volumetric_fitness(a);
         }
-
+    }
+    if (pP->use_quartet ==1)
+    {
+        pQ->End_Generation();
+    }
+    //should this be ran here?
+    if (pP->use_PaCcet==1 || pP->use_quartet==1)
+    {
+        Run_Hyper_Volume_Check(pT);
     }
 }
 
@@ -265,7 +362,7 @@ void EA::Linear_Combination_Fitness(int a)
     indv.at(a).fitness = 0;
     indv.at(a).fitness = indv.at(a).F.at(0)*pP->W1 + indv.at(a).F.at(1)*pP->W2 + indv.at(a).F.at(2)*pP->W3;
     //swithces to a maximization problem
-    indv.at(a).fitness = 1/indv.at(a).fitness;
+    //indv.at(a).fitness = 1/indv.at(a).fitness;
 }
 
 
@@ -281,7 +378,7 @@ int EA::Down_Select()
         index_2 = rand() % indv.size();
     }
     //indvidual with higher fitness wins
-    if(indv.at(index_1).fitness > indv.at(index_2).fitness)
+    if(indv.at(index_1).fitness < indv.at(index_2).fitness)
     {
         loser = index_2;
     }
@@ -474,11 +571,31 @@ void EA::Find_Pareto_Optimal_Points()
     }
 }
 
+void EA::Write_Counter_File(Quartet* pQ)
+{
+    ofstream File10;
+    File10.open("Quartet_Counter.txt");
+    for (int i=0; i<pQ->quartet_counter.size(); i++)
+    {
+        for (int j=0; j<pQ->quartet_counter.at(i).size(); j++)
+        {
+            File10 << pQ->quartet_counter.at(i).at(j) << "\t";
+        }
+        File10 << endl;
+    }
+    File10.close();
+}
+
 
 //-------------------------------------------------------------------------
 //Runs entire multi-objective problem
 void EA::Run_Multi_Objective()
 {
+    Build_Hyper_Volume();
+    //PaCcET T;
+    //PaCcET* pT = &T;
+    Quartet Q;
+    Quartet* pQ = &Q;
     Build_Pop();
     Create_set_point();
     for (int gen=0; gen<pP->gen_max; gen++)
@@ -486,7 +603,8 @@ void EA::Run_Multi_Objective()
         if (gen < pP->gen_max-1)
         {
             cout << "Generation" << "\t" << gen << endl;
-            Get_Fitness();
+            Get_Fitness(pQ);
+            
             Sort_indivduals_fitness();
             cout << "Best Individual" << endl;
             cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
@@ -502,15 +620,17 @@ void EA::Run_Multi_Objective()
                 cout << indv.at(0).F.at(i) << "\t";
             }
             cout << endl;
-            Store_f_values(gen);
+            //Store_f_values(gen);
             Natural_Selection();
             cout << endl;
             cout << "--------------------------------------------------------------------" << endl;
         }
+        
         if (gen == pP->gen_max-1)
         {
             cout << "Final Generation" << "\t" << gen << endl;
-            Get_Fitness();
+            Get_Fitness(pQ);
+            
             Sort_indivduals_fitness();
             cout << "Best Individual" << endl;
             cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
@@ -526,12 +646,16 @@ void EA::Run_Multi_Objective()
                 cout << indv.at(0).F.at(i) << "\t";
             }
             cout << endl;
-            Store_f_values(gen);
+            //Store_f_values(gen);
             Write_final_pop_to_file();
         }
     }
-    Find_Pareto_Optimal_Points();
-    Write_Pareto_Optimal_Points_To_File();
+    //Find_Pareto_Optimal_Points();
+    //Write_Pareto_Optimal_Points_To_File();
+    //T.exhaustive_to_file();
+    //T.PFront_to_file();
+    Write_Counter_File(pQ);
+    cout << "DONE" << endl;
 }
 
 #endif /* EA_hpp */

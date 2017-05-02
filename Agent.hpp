@@ -40,6 +40,7 @@ public:
     double fitness;
     int neg;
     double length;
+    int oct_num;
 private:
 };
 
