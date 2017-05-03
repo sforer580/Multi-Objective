@@ -29,6 +29,7 @@ class EA
     friend class Agent;
     friend class F_val;
     friend class PaCcET;
+    friend class Test_Point;
     
 protected:
     
@@ -37,8 +38,10 @@ public:
     Parameters* pP;
     vector<Agent> indv;
     vector<F_value> point;
-    vector<vector<double>> hyper_val;
+    vector<Test_Point> tp;
+    vector<vector<double> > hyper_val;
     int num_hyper_dom;
+    vector<int> hyper_dom;
     
     //Data structure
     void Build_Pop();
@@ -55,7 +58,7 @@ public:
     void Linear_Combination_Fitness(int a);
     void Volumetric_fitness(int a);
     void Build_Hyper_Volume();
-    void Run_Hyper_Volume_Check(PaCcET* pT);
+    void Run_Hyper_Volume_Check(Quartet *pQ);
     
     //EA functions
     int Down_Select();
@@ -63,6 +66,7 @@ public:
     int kill;
     void Natural_Selection();
     void Sort_indivduals_fitness();
+    void Output_Best_Individual_Info();
     
     //Statistical functions
     struct Greater_than_agent_fitness;
@@ -72,6 +76,7 @@ public:
     void Find_Pareto_Optimal_Points();
     void Write_Pareto_Optimal_Points_To_File();
     void Write_Counter_File(Quartet* pQ);
+    void Write_Hyper_Dom_To_File();
     
     //EA main
     void Run_Multi_Objective();
@@ -224,36 +229,110 @@ void EA::Run_Quartet(Quartet *pQ, int a)
 //Build the hyper volume space
 void EA::Build_Hyper_Volume()
 {
-    for (int i=0; i<pP->num_hyper; i++)
+    
+    ifstream ifile("test_points.txt", ios::in);
+    vector<double> sw;
+    
+    //check to see that the file was opened correctly:
+    if (!ifile.is_open())
+    {
+        cerr << "There was a problem opening the input file!\n";
+        exit(1);//exit or do additional error checking
+    }
+    
+    double num = 0.0;
+    //keep storing values from the text file so long as data exists:
+    while (ifile >> num)
+    {
+        sw.push_back(num);
+    }
+    
+    //verify that the scores were stored correctly:
+    for (int i = 0; i < sw.size(); ++i)
+    {
+        //cout << sw[i] << endl;
+    }
+    if (sw.size()==pP->num_tp*2)
+    {
+        int count = 0;
+        for (int i=0; i<pP->num_tp; i++)
+        {
+            Test_Point TP;
+            tp.push_back(TP);
+            for (int j=0; j<2; j++)
+            {
+                tp.at(i).point.push_back(sw.at(count));
+                count += 1;
+            }
+        }
+        assert(tp.size()==pP->num_tp);
+    }
+    
+    
+    if (sw.size()!=pP->num_tp*2)
+    {
+        for (int i=0; i<pP->num_tp; i++)
+        {
+            Test_Point TP;
+            tp.push_back(TP);
+            vector<double> r;
+            for (int j=0; j<2; j++)
+            {
+                r.push_back(((double)rand()/RAND_MAX)*5);
+            }
+            tp.at(i).point = r;
+            //hyper_val.push_back(r);
+        }
+        assert(tp.size()==pP->num_tp);
+    }
+    
+    ofstream File13;
+    File13.open("test_points.txt");
+    for (int i=0; i<pP->num_tp; i++)
     {
         for (int j=0; j<2; j++)
         {
-            double r = (rand()/RAND_MAX)*5;
-            hyper_val.at(i).push_back(r);
+            File13 << tp.at(i).point.at(j) << "\t";
         }
+        File13 << endl;
     }
+    File13.close();
 }
 
 
 //-------------------------------------------------------------------------
 //Checks how much of the hyper volume is dominated
-void EA::Run_Hyper_Volume_Check(PaCcET* pT)
+void EA::Run_Hyper_Volume_Check(Quartet *pQ)
 {
-    num_hyper_dom = 0;
-    for (int i=0; i<10; i++)
+    for (int i=0; i<pP->num_tp; i++)
     {
-        //what is v1?
-        vector<double> v1;
-        for (int j=0; j<1000000; j++)
+        tp.at(i).dom = 0;
+    }
+    
+    num_hyper_dom = 0;
+    vector<vector<double> > PFront_ph;
+    PFront_ph = pQ->pT->get_PFront();
+    for (int i=0; i<PFront_ph.size(); i++)
+    {
+        vector<double> v1  = PFront_ph.at(i);
+        //v1.at(0) = 0;
+        //v1.at(1) = 0;
+        for (int j=0; j<pP->num_tp; j++)
         {
-            vector<double> v2 = hyper_val.at(j);
-            if (pT->does_v1_dominate_v2(v1, v2) == true)
+            if(tp.at(j).dom == 0)
             {
-                //hyper volume point is dominated by pareto front
-                num_hyper_dom += 1;
+                vector<double> v2 = tp.at(j).point;
+                if (pQ->pT->does_v1_dominate_v2(v1, v2) == true)
+                {
+                    //hyper volume point is dominated by pareto front
+                    num_hyper_dom += 1;
+                    tp.at(j).dom = 1;
+                }
             }
         }
     }
+    assert (num_hyper_dom <= pP->num_tp);
+    hyper_dom.push_back(num_hyper_dom);
 }
 
 
@@ -305,7 +384,7 @@ void EA::Get_Fitness(Quartet *pQ)
     //should this be ran here?
     if (pP->use_PaCcet==1 || pP->use_quartet==1)
     {
-        Run_Hyper_Volume_Check(pT);
+        Run_Hyper_Volume_Check(pQ);
     }
 }
 
@@ -571,19 +650,59 @@ void EA::Find_Pareto_Optimal_Points()
     }
 }
 
+
+//-------------------------------------------------------------------------
+//Writes the quratet counter to a txt file
 void EA::Write_Counter_File(Quartet* pQ)
 {
-    ofstream File10;
-    File10.open("Quartet_Counter.txt");
+    ofstream File11;
+    File11.open("Quartet_Counter.txt");
     for (int i=0; i<pQ->quartet_counter.size(); i++)
     {
         for (int j=0; j<pQ->quartet_counter.at(i).size(); j++)
         {
-            File10 << pQ->quartet_counter.at(i).at(j) << "\t";
+            File11 << pQ->quartet_counter.at(i).at(j) << "\t";
         }
-        File10 << endl;
+        File11 << endl;
     }
-    File10.close();
+    File11.close();
+}
+
+
+//-------------------------------------------------------------------------
+//Outputs the best individual info to the console
+void EA::Output_Best_Individual_Info()
+{
+    cout << "Best Individual" << endl;
+    cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
+    cout << "Xm values" << "\t";
+    for (int i=0; i<pP->m; i++)
+    {
+        cout << indv.at(0).Xm.at(i) << "\t";
+    }
+    cout << endl;
+    cout << "Function values" << "\t";
+    for (int i=0; i<pP->num_F; i++)
+    {
+        cout << indv.at(0).F.at(i) << "\t";
+    }
+    cout << endl;
+    cout << endl;
+    cout << "//////////////////////////////////////////////" << endl;
+}
+
+
+//-------------------------------------------------------------------------
+//Writes the amount of hyper volume points that were dominated each generation to a txt file
+void EA::Write_Hyper_Dom_To_File()
+{
+    ofstream File12;
+    File12.open("Hyper_Dom.txt");
+    for (int i=0; i<hyper_dom.size(); i++)
+    {
+        File12 << hyper_dom.at(i) << endl;
+    }
+    File12.close();
 }
 
 
@@ -592,70 +711,52 @@ void EA::Write_Counter_File(Quartet* pQ)
 void EA::Run_Multi_Objective()
 {
     Build_Hyper_Volume();
-    //PaCcET T;
-    //PaCcET* pT = &T;
-    Quartet Q;
-    Quartet* pQ = &Q;
-    Build_Pop();
-    Create_set_point();
-    for (int gen=0; gen<pP->gen_max; gen++)
+    for (int sr=0; sr<1; sr++)
     {
-        if (gen < pP->gen_max-1)
+        cout << endl;
+        cout << "--------------------------------------------------------------------" << endl;
+        //PaCcET T;
+        //PaCcET* pT = &T;
+        Quartet Q;
+        Quartet* pQ = &Q;
+        Build_Pop();
+        Create_set_point();
+        for (int gen=0; gen<pP->gen_max; gen++)
         {
-            cout << "Generation" << "\t" << gen << endl;
-            Get_Fitness(pQ);
+            if (gen < pP->gen_max-1)
+            {
+                cout << sr << "::" << gen << endl;
+                Get_Fitness(pQ);
+                
+                //Output_Best_Individual_Info();
+                
+                Sort_indivduals_fitness();
+                
+                //Store_f_values(gen);
+                Natural_Selection();
+            }
             
-            Sort_indivduals_fitness();
-            cout << "Best Individual" << endl;
-            cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
-            cout << "Xm values" << "\t";
-            for (int i=0; i<pP->m; i++)
+            if (gen == pP->gen_max-1)
             {
-                cout << indv.at(0).Xm.at(i) << "\t";
+                cout << sr << "::" << gen << endl;
+                Get_Fitness(pQ);
+                
+                //Output_Best_Individual_Info();
+                
+                Sort_indivduals_fitness();
+                
+                //Store_f_values(gen);
+                Write_final_pop_to_file();
             }
-            cout << endl;
-            cout << "Function values" << "\t";
-            for (int i=0; i<pP->num_F; i++)
-            {
-                cout << indv.at(0).F.at(i) << "\t";
-            }
-            cout << endl;
-            //Store_f_values(gen);
-            Natural_Selection();
-            cout << endl;
-            cout << "--------------------------------------------------------------------" << endl;
         }
-        
-        if (gen == pP->gen_max-1)
-        {
-            cout << "Final Generation" << "\t" << gen << endl;
-            Get_Fitness(pQ);
-            
-            Sort_indivduals_fitness();
-            cout << "Best Individual" << endl;
-            cout << "Fitness" << "\t" << indv.at(0).fitness << endl;
-            cout << "Xm values" << "\t";
-            for (int i=0; i<pP->m; i++)
-            {
-                cout << indv.at(0).Xm.at(i) << "\t";
-            }
-            cout << endl;
-            cout << "Function values" << "\t";
-            for (int i=0; i<pP->num_F; i++)
-            {
-                cout << indv.at(0).F.at(i) << "\t";
-            }
-            cout << endl;
-            //Store_f_values(gen);
-            Write_final_pop_to_file();
-        }
+        //Find_Pareto_Optimal_Points();
+        //Write_Pareto_Optimal_Points_To_File();
+        //T.exhaustive_to_file();
+        //T.PFront_to_file();
+        Write_Hyper_Dom_To_File();
+        Write_Counter_File(pQ);
+        cout << "DONE" << endl;
     }
-    //Find_Pareto_Optimal_Points();
-    //Write_Pareto_Optimal_Points_To_File();
-    //T.exhaustive_to_file();
-    //T.PFront_to_file();
-    Write_Counter_File(pQ);
-    cout << "DONE" << endl;
 }
 
 #endif /* EA_hpp */

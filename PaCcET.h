@@ -60,6 +60,8 @@ private:
     void rand_thresh();
     
 public:
+    vector<vector<double> > get_PFront();
+    
     void exhaustive_to_file();
     void PFront_to_file();
     
@@ -80,6 +82,14 @@ public:
     vector<double> get_ut();
     bool does_v1_dominate_v2(vector<double> v1, vector<double> v2);
 };
+
+vector<vector<double> > PaCcET::get_PFront()
+{
+    return PFront;
+}
+
+
+
 
 vector<double> PaCcET::get_ut(){
     return utopia;

@@ -18,6 +18,7 @@ class Quartet
     friend class F_val;
     friend class PaCcET;
     friend class EA;
+    friend class Test_Point;
     
 protected:
     
@@ -41,7 +42,7 @@ private:
 //Runs the end of generation functions for the Quartet
 void Quartet::End_Generation()
 {
-    cout << "TBU PROCESSING" << endl;
+    //cout << "TBU PROCESSING" << endl;
     for(int i=0; i<to_be_updated.size(); i++)
     {
         T.Pareto_Check(to_be_updated.at(i));

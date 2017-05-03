@@ -28,6 +28,7 @@ class Agent
     friend class Parameters;
     friend class EA;
     friend class F_val;
+    friend class Test_Point;
     
 protected:
     

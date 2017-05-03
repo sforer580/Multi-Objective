@@ -23,6 +23,7 @@
 #include "Parameters.hpp"
 #include "PaCcET.h"
 #include "Quartet.hpp"
+#include "Test_Point.hpp"
 #include "EA.hpp"
 
 
