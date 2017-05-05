@@ -53,12 +53,15 @@ public:
     void Function_2(int a);
     void Sub_Function(int a);
     void Get_Fitness(Quartet* pQ);
+    void Get_Quartet_Fitness(Quartet *pQ);
+    void Get_PaCcET_Fitness(PaCcET *pT);
     void PaCcET_Fitness(PaCcET* pT, int a);
     void Run_Quartet(Quartet *pQ, int a);
     void Linear_Combination_Fitness(int a);
     void Volumetric_fitness(int a);
     void Build_Hyper_Volume();
-    void Run_Hyper_Volume_Check(Quartet *pQ);
+    void Run_Hyper_Volume_Check_Quartet(Quartet *pQ);
+    void Run_Hyper_Volume_Check_PaCcET(PaCcET *pT);
     
     //EA functions
     int Down_Select();
@@ -100,8 +103,10 @@ void EA::Build_Pop()
         indv.at(a).x.resize(pP->num_x_val);
         for (int i=0; i<pP->num_x_val; i++)
         {
-            double max = pP->x_val_upper_limit;
-            double min = pP->x_val_lower_limit;
+            //double max = pP->x_val_upper_limit;
+            //double min = pP->x_val_lower_limit;
+            double max = 0.51;
+            double min = 0.49;
             double range = max-min;
             //randomly gives an x value between the upper and lower limit
             indv.at(a).x.at(i) = range*((double)rand()/RAND_MAX)+min;
@@ -302,7 +307,7 @@ void EA::Build_Hyper_Volume()
 
 //-------------------------------------------------------------------------
 //Checks how much of the hyper volume is dominated
-void EA::Run_Hyper_Volume_Check(Quartet *pQ)
+void EA::Run_Hyper_Volume_Check_Quartet(Quartet *pQ)
 {
     for (int i=0; i<pP->num_tp; i++)
     {
@@ -336,13 +341,48 @@ void EA::Run_Hyper_Volume_Check(Quartet *pQ)
 }
 
 
+
+//-------------------------------------------------------------------------
+//Checks how much of the hyper volume is dominated
+void EA::Run_Hyper_Volume_Check_PaCcET(PaCcET *pT)
+{
+    for (int i=0; i<pP->num_tp; i++)
+    {
+        tp.at(i).dom = 0;
+    }
+    
+    num_hyper_dom = 0;
+    vector<vector<double> > PFront_ph;
+    PFront_ph = pT->get_PFront();
+    for (int i=0; i<PFront_ph.size(); i++)
+    {
+        vector<double> v1  = PFront_ph.at(i);
+        //v1.at(0) = 0;
+        //v1.at(1) = 0;
+        for (int j=0; j<pP->num_tp; j++)
+        {
+            if(tp.at(j).dom == 0)
+            {
+                vector<double> v2 = tp.at(j).point;
+                if (pT->does_v1_dominate_v2(v1, v2) == true)
+                {
+                    //hyper volume point is dominated by pareto front
+                    num_hyper_dom += 1;
+                    tp.at(j).dom = 1;
+                }
+            }
+        }
+    }
+    assert (num_hyper_dom <= pP->num_tp);
+    hyper_dom.push_back(num_hyper_dom);
+}
+
+
 //-------------------------------------------------------------------------
 //Gets fitness for each individual
-void EA::Get_Fitness(Quartet *pQ)
+void EA::Get_PaCcET_Fitness(PaCcET *pT)
 {
-    PaCcET T;
-    PaCcET* pT = &T;
-    
+    //cout << "XXXX"  << endl;
     for (int a=0; a<pP->num_agents; a++)
     {
         indv.at(a).fitness = 0;
@@ -356,6 +396,37 @@ void EA::Get_Fitness(Quartet *pQ)
         }
     }
     
+    //cout << "XXyX"  << endl;
+
+    for (int a=0; a<pP->num_agents; a++)
+    {
+        if (pP->use_PaCcet == 1)
+        {
+            PaCcET_Fitness(pT, a);
+        }
+    }
+       //cout << "XyyX"  << endl;
+    if (pP->use_PaCcet==1)
+    {
+        Run_Hyper_Volume_Check_PaCcET(pT);
+    }
+}
+
+
+
+//-------------------------------------------------------------------------
+//Gets fitness for each individual
+void EA::Get_Quartet_Fitness(Quartet *pQ)
+{
+    for (int a=0; a<pP->num_agents; a++)
+    {
+        indv.at(a).fitness = 0;
+        Sub_Function(a);
+        Function_0(a);
+        Function_1(a);
+        //Function_2(a);
+    }
+    
     
     for (int a=0; a<pP->num_agents; a++)
     {
@@ -363,28 +434,14 @@ void EA::Get_Fitness(Quartet *pQ)
         {
             Run_Quartet(pQ, a);
         }
-        if (pP->use_PaCcet == 1)
-        {
-            PaCcET_Fitness(pT, a);
-        }
-        //linear combination
-        if (pP->linear_combination == 1)
-        {
-            Linear_Combination_Fitness(a);
-        }
-        if (pP->volumetirc == 1)
-        {
-            Volumetric_fitness(a);
-        }
     }
     if (pP->use_quartet ==1)
     {
         pQ->End_Generation();
     }
-    //should this be ran here?
-    if (pP->use_PaCcet==1 || pP->use_quartet==1)
+    if (pP->use_quartet==1)
     {
-        Run_Hyper_Volume_Check(pQ);
+        Run_Hyper_Volume_Check_Quartet(pQ);
     }
 }
 
@@ -715,10 +772,18 @@ void EA::Run_Multi_Objective()
     {
         cout << endl;
         cout << "--------------------------------------------------------------------" << endl;
-        //PaCcET T;
-        //PaCcET* pT = &T;
-        Quartet Q;
-        Quartet* pQ = &Q;
+        PaCcET* pT;
+        if (pP->use_PaCcet==1)
+        {
+            PaCcET T;
+            pT = &T;
+        }
+        Quartet* pQ;
+        if (pP->use_quartet==1)
+        {
+            Quartet Q;
+            pQ = &Q;
+        }
         Build_Pop();
         Create_set_point();
         for (int gen=0; gen<pP->gen_max; gen++)
@@ -726,7 +791,14 @@ void EA::Run_Multi_Objective()
             if (gen < pP->gen_max-1)
             {
                 cout << sr << "::" << gen << endl;
-                Get_Fitness(pQ);
+                if (pP->use_quartet==1)
+                {
+                    Get_Quartet_Fitness(pQ);
+                }
+                if (pP->use_PaCcet==1)
+                {
+                    Get_PaCcET_Fitness(pT);
+                }
                 
                 //Output_Best_Individual_Info();
                 
@@ -739,7 +811,14 @@ void EA::Run_Multi_Objective()
             if (gen == pP->gen_max-1)
             {
                 cout << sr << "::" << gen << endl;
-                Get_Fitness(pQ);
+                if (pP->use_quartet==1)
+                {
+                    Get_Quartet_Fitness(pQ);
+                }
+                if (pP->use_PaCcet==1)
+                {
+                    Get_PaCcET_Fitness(pT);
+                }
                 
                 //Output_Best_Individual_Info();
                 
@@ -754,7 +833,10 @@ void EA::Run_Multi_Objective()
         //T.exhaustive_to_file();
         //T.PFront_to_file();
         Write_Hyper_Dom_To_File();
-        Write_Counter_File(pQ);
+        if (pP->use_quartet==1)
+        {
+            Write_Counter_File(pQ);
+        }
         cout << "DONE" << endl;
     }
 }

@@ -35,9 +35,9 @@ protected:
 public:
     int num_agents = 100;
     int num_x_val = 1;
-    int m = 10;
-    double x_val_upper_limit = .51;
-    double x_val_lower_limit = .49;
+    int m = 20;
+    double x_val_upper_limit = 1;
+    double x_val_lower_limit = 0;
     double Xm_val_upper_limit = 1;
     double Xm_val_lower_limit = 0;
     int num_F = 2;
@@ -46,17 +46,17 @@ public:
     int use_PaCcet = 0;                         //0=off, 1=on
     int use_quartet = 1;                        //0=off, 1=on
     vector<double> set_point;
-    int num_tp = 1000000;
+    int num_tp = 10000;
     double set_point_val_0 = 1;
     double set_point_val_1 = 1;
     double set_point_val_2 = 1;
     double W1 = 1;
     double W2 = 1;
     double W3 = 1;
-    int gen_max = 10;
+    int gen_max = 100;
     int to_kill = num_agents/2;
     double prob_mutate = 50;
-    double mutate_range = 0.05;
+    double mutate_range = 0.15;
 
 private:
 };
