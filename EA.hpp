@@ -80,6 +80,7 @@ public:
     void Write_Pareto_Optimal_Points_To_File();
     void Write_Counter_File(Quartet* pQ);
     void Write_Hyper_Dom_To_File();
+    void Delete_Files();
     
     //EA main
     void Run_Multi_Objective();
@@ -125,8 +126,11 @@ void EA::Build_Pop()
         {
             indv.at(a).F.at(i) = 0;
         }
-        
+        assert(indv.at(a).x.size()==pP->num_x_val);
+        assert(indv.at(a).Xm.size()==pP->m);
+        assert(indv.at(a).F.size()==pP->num_F);
     }
+    assert(indv.size()==pP->num_agents);
 }
 
 
@@ -712,6 +716,7 @@ void EA::Find_Pareto_Optimal_Points()
 //Writes the quratet counter to a txt file
 void EA::Write_Counter_File(Quartet* pQ)
 {
+    /*
     ofstream File11;
     File11.open("Quartet_Counter.txt");
     for (int i=0; i<pQ->quartet_counter.size(); i++)
@@ -722,7 +727,46 @@ void EA::Write_Counter_File(Quartet* pQ)
         }
         File11 << endl;
     }
-    File11.close();
+     */
+    assert(pQ->Q_1.size()==pP->gen_max);
+    assert(pQ->Q_2.size()==pP->gen_max);
+    assert(pQ->Q_P.size()==pP->gen_max);
+    
+    ofstream File14;
+    File14.open("Quartet_Counter_1.txt", ios_base::app);
+    for (int i=0; i<pQ->Q_1.size(); i++)
+    {
+        File14 << pQ->Q_1.at(i) << "\t";
+    }
+    File14 << endl;
+    
+    ofstream File15;
+    File15.open("Quartet_Counter_2.txt", ios_base::app);
+    for (int i=0; i<pQ->Q_2.size(); i++)
+    {
+        File15 << pQ->Q_2.at(i) << "\t";
+    }
+    File15 << endl;
+    
+    ofstream File16;
+    File16.open("Quartet_Counter_P.txt", ios_base::app);
+    for (int i=0; i<pQ->Q_P.size(); i++)
+    {
+        File16 << pQ->Q_P.at(i) << "\t";
+    }
+    File16 << endl;
+    
+    pQ->quartet_counter.clear();
+    pQ->Q_1.clear();
+    pQ->Q_2.clear();
+    pQ->Q_P.clear();
+    
+    //File11.close();
+    File14.close();
+    File15.close();
+    File16.close();
+    
+    
 }
 
 
@@ -754,12 +798,45 @@ void EA::Output_Best_Individual_Info()
 void EA::Write_Hyper_Dom_To_File()
 {
     ofstream File12;
-    File12.open("Hyper_Dom.txt");
+    File12.open("Hyper_Dom.txt", ios_base::app);
+    assert(hyper_dom.size()==pP->gen_max);
     for (int i=0; i<hyper_dom.size(); i++)
     {
-        File12 << hyper_dom.at(i) << endl;
+        File12 << hyper_dom.at(i) << "\t";
     }
+    hyper_dom.clear();
+    File12 << endl;
     File12.close();
+}
+
+
+//-------------------------------------------------------------------------
+//Deltes the txt files
+void EA::Delete_Files()
+{
+    if( remove( "Hyper_Dom.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Hyper_Dom" );
+    else
+        puts( "Hyper_Dom FILE SUCCEDDFULLY DELETED" );
+    cout << endl;
+    
+    if( remove( "Quartet_Counter_1.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Quartet_Counter_1" );
+    else
+        puts( "Quartet_Counter_1 FILE SUCCEDDFULLY DELETED" );
+    cout << endl;
+    
+    if( remove( "Quartet_Counter_2.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Quartet_Counter_2" );
+    else
+        puts( "Quartet_Counter_2 FILE SUCCEDDFULLY DELETED" );
+    cout << endl;
+    
+    if( remove( "Quartet_Counter_P.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Quartet_Counter_P" );
+    else
+        puts( "Quartet_Counter_P FILE SUCCEDDFULLY DELETED" );
+    cout << endl;
 }
 
 
@@ -767,8 +844,9 @@ void EA::Write_Hyper_Dom_To_File()
 //Runs entire multi-objective problem
 void EA::Run_Multi_Objective()
 {
+    Delete_Files();
     Build_Hyper_Volume();
-    for (int sr=0; sr<1; sr++)
+    for (int sr=0; sr<pP->num_sr; sr++)
     {
         cout << endl;
         cout << "--------------------------------------------------------------------" << endl;
@@ -790,7 +868,10 @@ void EA::Run_Multi_Objective()
         {
             if (gen < pP->gen_max-1)
             {
-                cout << sr << "::" << gen << endl;
+                if (gen%25 == 0)
+                {
+                    cout << sr << "::" << gen << endl;
+                }
                 if (pP->use_quartet==1)
                 {
                     Get_Quartet_Fitness(pQ);
@@ -826,6 +907,7 @@ void EA::Run_Multi_Objective()
                 
                 //Store_f_values(gen);
                 Write_final_pop_to_file();
+                indv.clear();
             }
         }
         //Find_Pareto_Optimal_Points();
@@ -837,7 +919,7 @@ void EA::Run_Multi_Objective()
         {
             Write_Counter_File(pQ);
         }
-        cout << "DONE" << endl;
+        cout << "END STAT RUN" << endl;
     }
 }
 

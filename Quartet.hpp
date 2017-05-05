@@ -32,6 +32,9 @@ public:
     int counter_1 = 0;
     int counter_2 = 0;
     int counter_P = 0;
+    vector<int> Q_1;
+    vector<int> Q_2;
+    vector<int> Q_P;
     
     double Quartet_main(vector<double> coord);
     void End_Generation();
@@ -54,6 +57,9 @@ void Quartet::End_Generation()
     V.push_back(counter_2);
     V.push_back(counter_P);
     quartet_counter.push_back(V);
+    Q_1.push_back(counter_1);
+    Q_2.push_back(counter_2);
+    Q_P.push_back(counter_P);
     counter_1 = 0;
     counter_2 = 0;
     counter_P = 0;
