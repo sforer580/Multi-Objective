@@ -313,11 +313,6 @@ void EA::Build_Hyper_Volume()
 //Checks how much of the hyper volume is dominated
 void EA::Run_Hyper_Volume_Check_Quartet(Quartet *pQ)
 {
-    for (int i=0; i<pP->num_tp; i++)
-    {
-        tp.at(i).dom = 0;
-    }
-    
     num_hyper_dom = 0;
     vector<vector<double> > PFront_ph;
     PFront_ph = pQ->pT->get_PFront();
@@ -334,10 +329,17 @@ void EA::Run_Hyper_Volume_Check_Quartet(Quartet *pQ)
                 if (pQ->pT->does_v1_dominate_v2(v1, v2) == true)
                 {
                     //hyper volume point is dominated by pareto front
-                    num_hyper_dom += 1;
+                    //num_hyper_dom += 1;
                     tp.at(j).dom = 1;
                 }
             }
+        }
+    }
+    for (int j=0; j<pP->num_tp; j++)
+    {
+        if(tp.at(j).dom == 1)
+        {
+            num_hyper_dom += 1;
         }
     }
     assert (num_hyper_dom <= pP->num_tp);
@@ -350,11 +352,6 @@ void EA::Run_Hyper_Volume_Check_Quartet(Quartet *pQ)
 //Checks how much of the hyper volume is dominated
 void EA::Run_Hyper_Volume_Check_PaCcET(PaCcET *pT)
 {
-    for (int i=0; i<pP->num_tp; i++)
-    {
-        tp.at(i).dom = 0;
-    }
-    
     num_hyper_dom = 0;
     vector<vector<double> > PFront_ph;
     PFront_ph = pT->get_PFront();
@@ -371,10 +368,17 @@ void EA::Run_Hyper_Volume_Check_PaCcET(PaCcET *pT)
                 if (pT->does_v1_dominate_v2(v1, v2) == true)
                 {
                     //hyper volume point is dominated by pareto front
-                    num_hyper_dom += 1;
+                    //num_hyper_dom += 1;
                     tp.at(j).dom = 1;
                 }
             }
+        }
+    }
+    for (int j=0; j<pP->num_tp; j++)
+    {
+        if(tp.at(j).dom == 1)
+        {
+            num_hyper_dom += 1;
         }
     }
     assert (num_hyper_dom <= pP->num_tp);
@@ -848,6 +852,10 @@ void EA::Run_Multi_Objective()
     Build_Hyper_Volume();
     for (int sr=0; sr<pP->num_sr; sr++)
     {
+        for (int i=0; i<pP->num_tp; i++)
+        {
+            tp.at(i).dom = 0;
+        }
         cout << endl;
         cout << "--------------------------------------------------------------------" << endl;
         PaCcET* pT;
